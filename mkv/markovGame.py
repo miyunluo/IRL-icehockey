@@ -34,17 +34,19 @@ def location(x, y):
     elif x >= 25 and y <= 0:
         return str(6)
 
-
-class MarkovGame(object):
-
-    def __init__(csv_dir):
-        self.csv_dir = csv_dir
-        self.acts = ['assist', 'block', 'carry', 'check', 'controlledbreakout','controlledentryagainst',
+acts = ['assist', 'block', 'carry', 'check', 'controlledbreakout','controlledentryagainst',
                     'dumpin','dumpinagainst','dumpout','faceoff','goal','icing','lpr','offside','pass',
                     'pass1timer','penalty','pressure','pscarry','pscheck','pslpr','pspuckprotection',
                     'puckprotection','reception','receptionprevention','shot','shot1timer',
                     'socarry','socheck','sogoal','solpr','sopuckprotection','soshot']
+
+class MarkovGame(object):
+
+    def __init__(self, csv_dir):
+        self.csv_dir = csv_dir
+        self.acts = acts
         self.trans = self._build_transition(csv_dir)
+        self._decomposition()
 
     def _build_transition(self, csv_dir):
         print('###### Building Markov Game Model from data ######')
@@ -68,7 +70,7 @@ class MarkovGame(object):
                 to_dict[key] = 1
                 trans[s] = to_dict
 
-        for f in os.listdir(csv_file):
+        for f in os.listdir(csv_dir):
             # first check if data in gameTime increasing order
             check_csv_seq(csv_dir, f) 
 
@@ -85,14 +87,14 @@ class MarkovGame(object):
                     HorA     = row['H/A']
                     loc      = location(xCoord, yCoord)
 
-                    print(type(act), type(goalDiff), type(manPower), type(period), type(HorA))
+                    #print(type(act), type(goalDiff), type(manPower), type(period), type(HorA))
                     s = goalDiff + ',' + manPower + ',' + period + ',' + loc + ',' + HorA
                     a = str(self.acts.index(act))
                     
-                    if pres == '' and pre_a == '':
+                    if pre_s == '' and pre_a == '':
                         pre_s = s
                         pre_a = a
-                    elif: pre_a == str(self.acts.index('goal')):
+                    elif pre_a == str(self.acts.index('goal')):
                         """
                         Add goal state after 'goal' action for convenience
                         """
@@ -103,13 +105,14 @@ class MarkovGame(object):
                         pre_s = s
                         pre_a = a
                     else:
-                        inset2dict(pre_s, pre_a, s)
+                        insert2dict(pre_s, pre_a, s)
                         pre_s = s
                         pre_a = a
         return trans
 
     def _decomposition(self):
         print('######              decomposing             ######')
+        pre_s        = {} # a dict: {state : [list of previous state]}
         s_a          = {} # a dict: {state : [list of actions]}
         s_a_freq     = {} # a ditt: {state,action : frequency}
         s_a_nxs      = {} # a dict: {state,action : [list of next state]}
@@ -121,6 +124,13 @@ class MarkovGame(object):
             for to_key in to_keys:
                 a, nxs = to_key.split('+')
                 num    = to_dict[to_key]
+
+                # update pre_s
+                if nxs in pre_s:
+                    if s not in pre_s[nxs]:
+                        pre_s[nxs].append(s)
+                else:
+                    pre_s[nxs] = [s]
 
                 # update s_a
                 if s in s_a:
@@ -160,6 +170,7 @@ class MarkovGame(object):
         self.s            = tmp
         self.end_s        = ['*,*,*,*,H','*,*,*,*,A']
         self.s2idx        = {tmp[i]:i for i in range(len(tmp))}
+        self.pre_s        = pre_s
         self.s_a          = s_a
         self.s_a_freq     = s_a_freq
         self.s_a_nxs      = s_a_nxs
@@ -170,13 +181,13 @@ class MarkovGame(object):
         get all the (next state, probablity) pair
         if taking action (a) at state (s)
         """
-        k1 = '%s+%s'(s, a)
+        k1 = '%s+%s'%(s, a)
         freq     = self.s_a_freq[k1]
         nxs_list = self.s_a_nxs[k1]
         nxs_and_prob = []
 
         for nxs in nxs_list:
-            k2 = '%s+%s+%s'(s, a, nxs)
+            k2 = '%s+%s+%s'%(s, a, nxs)
             this_freq = self.s_a_nxs_freq[k2]
             this_prob = float(this_freq) / float(freq)
             nxs_and_prob.append([nxs, this_prob])
@@ -204,8 +215,9 @@ class MarkovGame(object):
         return self.s_a[s]
     
     def get_nxs(self, s, a):
-        key = '%s+%s'
+        key = '%s+%s'%(s, a)
         return self.s_a_nxs[key]
                 
 if __name__ == '__main__':
-    check_csv_seq('/home/yudong/Documents/Sportlogiq_api','5665.csv')
+    check_csv_seq('/home/yudong/Documents/Slgq/data','5665.csv')
+    mg = MarkovGame('/home/yudong/Documents/Slgq/data')

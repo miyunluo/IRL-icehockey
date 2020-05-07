@@ -68,6 +68,6 @@ def value_iteration(mdp, reward, gamma, error, deterministic=True):
                 ]
             )
             prob = v_s / np.sum(v_s)
-            policy[st] = { mdp.get_act(s)[i] : prob[i] for i in range(len(prob)) }
+            policy[s] = { mdp.get_act(s)[i] : prob[i] for i in range(len(prob)) }
 
     return values, policy
