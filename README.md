@@ -7,3 +7,14 @@ International Joint Conference on Artificial Intelligence (IJCAI), 2020
 + Run `python3 main.py`
 
 ### Citation
+
+```
+@inproceedings{luo2020teamsports,
+	title={Inverse Reinforcement Learning for Team Sports: Valuing Actions and Players},
+	author={Luo, Yudong and Schulte, Oliver and Poupart, Pascal},
+	booktitle={International Joint Conference on Artificial Intelligence},
+	pages={3356-3363},
+	year={2020}
+}
+```
+
